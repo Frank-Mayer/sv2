@@ -20,23 +20,30 @@ services:
       - type: bind
         source: ./binds/mosquitto/log
         target: /mosquitto/log
+  server:
+    build: server/.
+    ports:
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host
+      - target: 8080
+        published: 8080
+        protocol: udp
+        mode: host
+    environment:
+      - REST_PORT=8080
+      - SERVERADDRESS=tcp://mosquitto:1883
+    networks:
+      - test-net
+    depends_on:
+      - mosquitto
   pub:
     build: publisher/.
     networks:
       - test-net
     depends_on:
       - mosquitto
-  sub:
-    build: subscriber/.
-    networks:
-      - test-net
-    depends_on:
-      - mosquitto
-    volumes:
-      - type: bind
-        source: ./binds/sub
-        target: /binds
-        read_only: false
 networks:
   test-net:
     external: false

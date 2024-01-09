@@ -15,7 +15,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -23,19 +22,19 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Frank-Mayer/sv2-types/go"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"google.golang.org/protobuf/proto"
 )
 
 // Connect to the broker and publish a message periodically
 
 const (
-	TOPIC         = "topic1"
+	TOPIC         = "sensordata"
 	QOS           = 1
 	SERVERADDRESS = "tcp://mosquitto:1883"
 	DELAY         = time.Second
 	CLIENTID      = "mqtt_publisher"
-
-	WRITETOLOG = true // If true then published messages will be written to the console
 )
 
 func main() {
@@ -85,26 +84,22 @@ func main() {
 	done := make(chan struct{})
 	var wg sync.WaitGroup
 
-	// The message could be anything; lets make it JSON containing a simple count (makes it simpler to track the messages)
-	type msg struct {
-		Count uint64
-	}
-
 	wg.Add(1)
 	go func() {
-		var count uint64
+		var value float32
 		for {
 			select {
 			case <-time.After(DELAY):
-				count += 1
-				msg, err := json.Marshal(msg{Count: count})
+				value += 0.1
+				msg, err := proto.Marshal(&sv2_types.SensorData{
+					Value: value,
+					Name:  "Temperature",
+					Unit:  "C",
+				})
 				if err != nil {
 					panic(err)
 				}
 
-				if WRITETOLOG {
-					fmt.Printf("sending message: %s\n", msg)
-				}
 				t := client.Publish(TOPIC, QOS, false, msg)
 				// Handle the token in a go routine so this loop keeps sending messages regardless of delivery status
 				go func() {
