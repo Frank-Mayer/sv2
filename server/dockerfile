@@ -1,0 +1,15 @@
+# Compile stage
+FROM golang:alpine AS build-env
+ENV CGO_ENABLED 0
+
+ADD . /server_src
+WORKDIR /server_src
+RUN go build -gcflags "all=-N -l" -o /server
+
+# Final stage
+FROM alpine:latest
+
+COPY --from=build-env /server /
+
+# Run
+CMD ["/server"]
