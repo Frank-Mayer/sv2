@@ -10,6 +10,8 @@ import (
 )
 
 func main() {
+	log.SetLevel(log.DebugLevel)
+
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -21,8 +23,16 @@ func main() {
 			if err := proto.Unmarshal(data, &msg); err != nil {
 				log.Error("failed to unmarshal message", "error", err, "data", data)
 			}
+			log.Info(
+				"received message",
+				"Name", msg.Name,
+				"Value", msg.Value,
+				"Unit", msg.Unit,
+			)
 		})
 	}()
 
 	wg.Wait()
+
+	log.Info("Server exiting")
 }
