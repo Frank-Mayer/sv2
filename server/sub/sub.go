@@ -11,10 +11,17 @@ import (
 )
 
 const (
-	QOS           = 1
-	SERVERADDRESS = "tcp://mosquitto:1883"
-	CLIENTID      = "mqtt_subscriber"
+	QOS      = 1
+	CLIENTID = "mqtt_subscriber"
 )
+
+func serverAddress() string {
+	addr, ok := os.LookupEnv("SERVERADDRESS")
+	if !ok {
+		return "tcp://mosquitto:1883"
+	}
+	return addr
+}
 
 func Sub(topic string, callback func(data []byte)) {
 	handler := func(_ mqtt.Client, msg mqtt.Message) {
@@ -22,7 +29,7 @@ func Sub(topic string, callback func(data []byte)) {
 	}
 
 	opts := mqtt.NewClientOptions()
-	opts.AddBroker(SERVERADDRESS)
+	opts.AddBroker(serverAddress())
 	opts.SetClientID(CLIENTID)
 
 	opts.SetOrderMatters(false)

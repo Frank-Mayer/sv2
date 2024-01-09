@@ -30,7 +30,7 @@ import (
 // Connect to the broker and publish a message periodically
 
 const (
-	TOPIC         = "topic1"
+	TOPIC         = "sensordata"
 	QOS           = 1
 	SERVERADDRESS = "tcp://mosquitto:1883"
 	DELAY         = time.Second
