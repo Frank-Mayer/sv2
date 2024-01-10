@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/Frank-Mayer/sv2-types/go"
@@ -22,8 +23,12 @@ func main() {
 		defer wg.Done()
 		sub.Sub("sensordata", func(data []byte) {
 			msg := sv2_types.SensorData{}
+			// try protobuf
 			if err := proto.Unmarshal(data, &msg); err != nil {
-				log.Error("failed to unmarshal message", "error", err, "data", data)
+				// try json
+				if err := json.Unmarshal(data, &msg); err != nil {
+					log.Error("failed to unmarshal message", "error", err, "data", data)
+				}
 			}
 			log.Debug(
 				"received message",
