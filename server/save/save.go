@@ -1,25 +1,57 @@
 package save
 
-var (
-	store = make(map[string][]float32)
+import (
+	"fmt"
+	"time"
 )
 
-func Add(key string, value float32) {
-	if _, ok := store[key]; !ok {
-		store[key] = make([]float32, 0)
-	}
-	store[key] = append(store[key], value)
+type SensorData struct {
+	Value float32 `json:"value"`
+	Time  int64   `json:"time"`
 }
 
-func Get(key string) (data []float32, ok bool) {
-	data, ok = store[key]
-	return
+type Sensor struct {
+	Name string        `json:"name"`
+	Unit string        `json:"unit"`
+	Data *[]SensorData `json:"data"`
 }
 
-func Keys() []string {
-	keys := make([]string, 0, len(store))
-	for key := range store {
-		keys = append(keys, key)
+var (
+	store = make([]Sensor, 0)
+)
+
+func utcNow() int64 {
+	return time.Now().Unix()
+}
+
+func Add(key string, value float32, unit string) {
+	for _, sensor := range store {
+		if sensor.Name == key {
+			*sensor.Data = append(*sensor.Data, SensorData{value, utcNow()})
+			sensor.Unit = unit
+			return
+		}
 	}
-	return keys
+	// If we get here, we didn't find the sensor in the store.
+	// Create a new one.
+	store = append(store, Sensor{
+		Name: key,
+		Unit: unit,
+		Data: &[]SensorData{
+			{value, utcNow()},
+		},
+	})
+}
+
+func Get() []Sensor {
+	return store
+}
+
+func GetNamed(name string) (*Sensor, error) {
+	for _, sensor := range store {
+		if sensor.Name == name {
+			return &sensor, nil
+		}
+	}
+	return nil, fmt.Errorf("sensor %s not found", name)
 }

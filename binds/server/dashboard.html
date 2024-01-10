@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard</title>
+  </head>
+  <body>
+    <h1>Dashboard</h1>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.min.js"
+      integrity="sha512-L0Shl7nXXzIlBSUUPpxrokqq4ojqgZFQczTYlGjzONGTDAcLremjwaWv5A+EDLnxhQzY5xUZPWLOLqYRkY0Cbw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+      type="text/javascript"
+    ></script>
+    <script>
+      async function updateCharts() {
+        const sensorsRes = await fetch("localhost:8080/sensor");
+        if (!sensorsRes.ok) {
+          console.error("failed to fetch sensors");
+          return;
+        }
+        const sensors = (await sensorsRes.json()).sensors;
+        const data = new Array(sensors.length);
+        for (let i = 0; i < sensors.length; i++) {
+          const sensor = sensors[i];
+          const res = await fetch(`/sensor/${sensor}`);
+          if (!res.ok) {
+            console.error(`failed to fetch sensor data for ${sensor.id}`);
+            return;
+          }
+          const sensorData = await res.json();
+          data[i] = {
+            label: sensor.name,
+            data: sensorData.map((d) => d.value),
+            backgroundColor: sensor.color,
+            borderColor: sensor.color,
+            fill: false,
+          };
+        }
+      }
+      window.setInterval(updateCharts, 5000);
+      updateCharts();
+    </script>
+  </body>
+</html>

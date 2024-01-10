@@ -3,7 +3,7 @@ module github.com/Frank-Mayer/sv2
 go 1.21.5
 
 require (
-	github.com/Frank-Mayer/sv2-types v0.0.0-20240109200328-2eabd8c7311a
+	github.com/Frank-Mayer/sv2-types v1.0.1704916597
 	github.com/charmbracelet/log v0.3.1
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	google.golang.org/protobuf v1.32.0

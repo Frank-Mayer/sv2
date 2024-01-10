@@ -38,6 +38,11 @@ services:
       - test-net
     depends_on:
       - mosquitto
+    volumes:
+      - type: bind
+        source: ./binds/server
+        target: /binds
+        read_only: true
   pub:
     build: publisher/.
     networks:

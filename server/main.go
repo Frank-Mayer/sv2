@@ -31,7 +31,7 @@ func main() {
 				"Value", msg.Value,
 				"Unit", msg.Unit,
 			)
-			save.Add(msg.Name, msg.Value)
+			save.Add(msg.Name, msg.Value, msg.Unit)
 		})
 		log.Info("MQTT Subscriber stopped")
 	}()
