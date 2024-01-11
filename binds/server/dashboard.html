@@ -1,46 +1,117 @@
-<!doctype html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-  </head>
-  <body>
+    <style>
+        :root {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+
+<body>
     <h1>Dashboard</h1>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.min.js"
-      integrity="sha512-L0Shl7nXXzIlBSUUPpxrokqq4ojqgZFQczTYlGjzONGTDAcLremjwaWv5A+EDLnxhQzY5xUZPWLOLqYRkY0Cbw=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-      type="text/javascript"
-    ></script>
-    <script>
-      async function updateCharts() {
-        const sensorsRes = await fetch("localhost:8080/sensor");
-        if (!sensorsRes.ok) {
-          console.error("failed to fetch sensors");
-          return;
+    <main id="root"></main>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script defer>
+        const rootEl = document.getElementById("root");
+        if (!rootEl) {
+            throw new Error("Root element not found");
         }
-        const sensors = (await sensorsRes.json()).sensors;
-        const data = new Array(sensors.length);
-        for (let i = 0; i < sensors.length; i++) {
-          const sensor = sensors[i];
-          const res = await fetch(`/sensor/${sensor}`);
-          if (!res.ok) {
-            console.error(`failed to fetch sensor data for ${sensor.id}`);
-            return;
-          }
-          const sensorData = await res.json();
-          data[i] = {
-            label: sensor.name,
-            data: sensorData.map((d) => d.value),
-            backgroundColor: sensor.color,
-            borderColor: sensor.color,
-            fill: false,
-          };
+
+        const charts = new Array();
+
+        function utcTimeFormat(x) {
+            if (typeof x == "number") {
+                return (new Date(x * 1000)).toLocaleTimeString();
+            } else if ("time" in x) {
+                return utcTimeFormat(x.time);
+            } else {
+                console.error("Could now format time", x);
+                return "";
+            }
         }
-      }
-      window.setInterval(updateCharts, 5000);
-      updateCharts();
+
+        function addChart(sensor) {
+            const data = {
+                labels: sensor.data.map(utcTimeFormat),
+                datasets: [
+                    {
+                        label: `${sensor.name} in ${sensor.unit}`,
+                        data: sensor.data.map(x => x.value),
+                        borderColor: "rgb(153, 102, 255)",
+                        backgroundColor: "rgba(153, 102, 255, 0.5)",
+                    }
+                ]
+            };
+
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false,
+                        },
+                        title: {
+                            display: true,
+                            text: sensor.name,
+                        }
+                    }
+                },
+            };
+
+            const canvasEl = document.createElement("canvas");
+            rootEl.appendChild(canvasEl);
+            charts.push({
+                name: sensor.name,
+                canvas: canvasEl,
+                chart: new Chart(
+                    canvasEl,
+                    config,
+                ),
+            });
+        }
+
+        async function initCharts() {
+            const sensorsRes = await fetch("/sensor");
+            if (!sensorsRes.ok) {
+                console.error("failed to fetch sensors");
+                return;
+            }
+            const { sensors } = await sensorsRes.json();
+            if (!Array.isArray(sensors)) {
+                console.error("Type error. Sensors is not Array", sensors);
+                return;
+            }
+            for (const sensor of sensors) {
+                addChart(sensor)
+            }
+        }
+
+        async function updateCharts() {
+            for (const chart of charts) {
+                const sensorRes = await fetch("/sensor/" + chart.name);
+                if (!sensorRes.ok) {
+                    console.error(`Failed to update sensor "${chart.name}"`)
+                    continue;
+                }
+                const sensor = await sensorRes.json()
+                chart.chart.data.labels = sensor.data.map(utcTimeFormat);
+                chart.chart.data.datasets[0].data = sensor.data.map(x => x.value);
+                chart.chart.update();
+                console.debug(`Updated sensor ${chart.name}`);
+            }
+        }
+
+        initCharts();
+
+        window.setInterval(updateCharts, 5000);
     </script>
-  </body>
+</body>
+
 </html>
