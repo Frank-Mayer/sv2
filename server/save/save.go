@@ -2,6 +2,7 @@ package save
 
 import (
 	"fmt"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -11,9 +12,10 @@ type SensorData struct {
 }
 
 type Sensor struct {
+	gorm.Model
 	Name string        `json:"name"`
 	Unit string        `json:"unit"`
-	Data *[]SensorData `json:"data"`
+	Data *[]SensorData `json:"data" gorm:"-"`
 }
 
 var (
@@ -41,6 +43,8 @@ func Add(key string, value float32, unit string) {
 			{value, utcNow()},
 		},
 	})
+
+	db.Create(&Sensor{Name: key, Unit: unit})
 }
 
 func Get() []Sensor {

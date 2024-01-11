@@ -14,6 +14,9 @@ import (
 func main() {
 	log.SetLevel(log.DebugLevel)
 
+	save.Init()
+	defer save.Close()
+
 	var wg sync.WaitGroup
 
 	wg.Add(2)

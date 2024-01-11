@@ -1,13 +1,21 @@
 # Compile stage
-FROM golang:alpine AS build-env
-ENV CGO_ENABLED 0
+FROM golang:bullseye AS build-env
+ENV CGO_ENABLED 1
+ENV CGO_LDFLAGS="-lsqlite3"
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libsqlite3-0 \
+    libsqlite3-dev \
+    build-essential && \
+    rm -rf /var/lib/apt/lists/*
 
 ADD . /server_src
 WORKDIR /server_src
 RUN go build -gcflags "all=-N -l" -o /server
 
 # Final stage
-FROM alpine:latest
+FROM debian:bullseye-slim
 
 COPY --from=build-env /server /
 
