@@ -60,11 +60,28 @@
 
 <body>
     <h1>Dashboard</h1>
-    <main id="root"></main>
+    <h2>LED</h2>
+    <div>
+        <span onclick="setLed(false)">0</span>
+        <span onclick="setLed(true)">1</span>
+    </div>
+    <h2>Sensors</h2>
+    <div id="sensors"></div>
+    <script>
+        async function setLed(on) {
+            await fetch(`/actor/led?on=${on ? "on" : "off"}`, {
+                method: "POST",
+                cache: "no-cache",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script defer>
-        const rootEl = document.getElementById("root");
-        if (!rootEl) {
+        const sensorsEl = document.getElementById("sensors");
+        if (!sensorsEl) {
             throw new Error("Root element not found");
         }
 
@@ -133,7 +150,7 @@
             lastValueEl.classList.add("last-value");
             lastValueEl.innerText = (last(config.data.datasets[0].data) ?? "N/A") + " " + sensor.unit;
             wrapperEl.appendChild(lastValueEl);
-            rootEl.appendChild(wrapperEl);
+            sensorsEl.appendChild(wrapperEl);
             charts.push({
                 name: sensor.name,
                 unit: sensor.unit,

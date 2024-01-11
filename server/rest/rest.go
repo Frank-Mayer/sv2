@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Frank-Mayer/sv2/mqtt"
 	"github.com/Frank-Mayer/sv2/save"
 	"github.com/Frank-Mayer/sv2/webui"
 	"github.com/charmbracelet/log"
@@ -60,7 +61,8 @@ func Rest() {
 				return
 			}
 		case 2:
-			if segments[0] == "sensor" {
+			switch segments[0] {
+			case "sensor":
 				key := segments[1]
 				data, err := save.GetNamed(key)
 				if err != nil {
@@ -76,6 +78,24 @@ func Rest() {
 				}
 				writeJson(res, data)
 				return
+			case "actor":
+				if segments[1] == "led" {
+					switch req.Method {
+					case http.MethodGet:
+						res.WriteHeader(http.StatusMethodNotAllowed)
+						return
+					case http.MethodPost:
+						on := req.URL.Query().Get("on")
+						if on != "on" && on != "off" {
+							res.WriteHeader(http.StatusBadRequest)
+							_, _ = res.Write([]byte("400 bad request, query parameter 'on' must be 'on' or 'off'"))
+							return
+						}
+						log.Debug("sending led command", "command", on)
+						mqtt.Pub("led", []byte("{\"command\":\""+on+"\"}"))
+						return
+					}
+				}
 			}
 		}
 
