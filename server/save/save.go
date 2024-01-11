@@ -16,6 +16,10 @@ type Sensor struct {
 	Data *[]SensorData `json:"data"`
 }
 
+const (
+	maxDataPoints = 1000
+)
+
 var (
 	store = make([]Sensor, 0)
 )
@@ -29,6 +33,9 @@ func Add(key string, value float32, unit string) {
 		if sensor.Name == key {
 			*sensor.Data = append(*sensor.Data, SensorData{value, utcNow()})
 			sensor.Unit = unit
+			if len(*sensor.Data) > maxDataPoints {
+				*sensor.Data = (*sensor.Data)[1:]
+			}
 			return
 		}
 	}

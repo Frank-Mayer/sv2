@@ -8,6 +8,52 @@
     <style>
         :root {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color-scheme: light dark;
+        }
+
+        body {
+            padding: 1rem 0.5rem;
+        }
+
+        #root {
+            max-width: 1056px;
+            width: fit-content;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 64px 32px;
+        }
+
+        #root>* {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #root canvas {
+            aspect-ratio: 2/1;
+            height: 256px;
+        }
+
+        .last-value::before {
+            content: "Last value:";
+            display: inline-block;
+            margin-right: 1em;
+        }
+
+        * {
+            min-width: 0;
+            min-height: 0;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            vertical-align: baseline;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -35,15 +81,30 @@
             }
         }
 
+        function last(arr) {
+            if (!Array.isArray(arr) || arr.length === 0) return null;
+            return arr[arr.length - 1];
+        }
+
+        function hash(s) {
+            for (var i = 0, h = 0; i < s.length; i++) {
+                h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+            }
+            return Math.abs(h);
+        }
+        window.hash = hash
+
         function addChart(sensor) {
+            const h = hash(sensor.name) % 360;
+
             const data = {
                 labels: sensor.data.map(utcTimeFormat),
                 datasets: [
                     {
                         label: `${sensor.name} in ${sensor.unit}`,
                         data: sensor.data.map(x => x.value),
-                        borderColor: "rgb(153, 102, 255)",
-                        backgroundColor: "rgba(153, 102, 255, 0.5)",
+                        borderColor: `hsl(${h}deg 80% 30%)`,
+                        backgroundColor: `hsl(${h}deg 100% 50%)`,
                     }
                 ]
             };
@@ -66,14 +127,22 @@
             };
 
             const canvasEl = document.createElement("canvas");
-            rootEl.appendChild(canvasEl);
+            const wrapperEl = document.createElement("div");
+            wrapperEl.appendChild(canvasEl);
+            const lastValueEl = document.createElement("p");
+            lastValueEl.classList.add("last-value");
+            lastValueEl.innerText = (last(config.data.datasets[0].data) ?? "N/A") + " " + sensor.unit;
+            wrapperEl.appendChild(lastValueEl);
+            rootEl.appendChild(wrapperEl);
             charts.push({
                 name: sensor.name,
+                unit: sensor.unit,
                 canvas: canvasEl,
                 chart: new Chart(
                     canvasEl,
                     config,
                 ),
+                last: lastValueEl,
             });
         }
 
@@ -93,6 +162,18 @@
             }
         }
 
+        function arrEq(a, b) {
+            if (a.length !== b.length) return false;
+
+            for (let i = 0; i != a.length; ++i) {
+                if (a[i] !== b[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         async function updateCharts() {
             for (const chart of charts) {
                 const sensorRes = await fetch("/sensor/" + chart.name);
@@ -100,17 +181,21 @@
                     console.error(`Failed to update sensor "${chart.name}"`)
                     continue;
                 }
-                const sensor = await sensorRes.json()
+                const sensor = await sensorRes.json();
+                const newData = sensor.data.map(x => x.value);
+                if (arrEq(chart.chart.data.datasets[0].data, newData)) {
+                    continue;
+                }
                 chart.chart.data.labels = sensor.data.map(utcTimeFormat);
-                chart.chart.data.datasets[0].data = sensor.data.map(x => x.value);
+                chart.chart.data.datasets[0].data = newData;
                 chart.chart.update();
-                console.debug(`Updated sensor ${chart.name}`);
+                chart.last.innerText = (last(newData) ?? "N/A") + " " + sensor.unit;
             }
         }
 
         initCharts();
 
-        window.setInterval(updateCharts, 5000);
+        window.setInterval(updateCharts, 2000);
     </script>
 </body>
 
