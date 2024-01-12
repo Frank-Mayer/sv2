@@ -11,9 +11,72 @@
             color-scheme: light dark;
         }
 
+        *,
+        *::before,
+        *::after {
+            font-size: 100%;
+            font-weight: 400;
+            min-width: 0;
+            min-height: 0;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            outline: none !important;
+            vertical-align: baseline;
+            box-sizing: border-box;
+        }
+
         body {
             padding: 1rem 0.5rem;
         }
+
+        h1,
+        h2 {
+            display: block;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 1.7rem;
+            font-weight: 500;
+            margin: 4rem 0 1rem 0;
+        }
+
+        /* LED */
+
+        .button {
+            display: inline-block;
+            border-radius: 1rem;
+            background-color: #00000040;
+            padding: 1rem 2rem;
+            margin: 0.5rem 0;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #00000080;
+        }
+
+        .field {
+            display: block;
+            width: fit-content;
+            border-radius: 1rem;
+            background-color: #00000040;
+            color: #808080;
+            padding: 1rem 2rem;
+            margin: 0.5rem 0;
+            cursor: pointer;
+        }
+
+        .field__input {
+            background-color: transparent;
+        }
+
+        /* sensors */
 
         #root {
             max-width: 1056px;
@@ -40,21 +103,6 @@
             display: inline-block;
             margin-right: 1em;
         }
-
-        * {
-            min-width: 0;
-            min-height: 0;
-            margin: 0;
-            padding: 0;
-            border: 0;
-            vertical-align: baseline;
-        }
-
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-        }
     </style>
 </head>
 
@@ -62,20 +110,55 @@
     <h1>Dashboard</h1>
     <h2>LED</h2>
     <div>
-        <span onclick="setLed(false)">0</span>
-        <span onclick="setLed(true)">1</span>
+        <p>
+            <span class="button" onclick="setLed(false)">off</span>
+            <span class="button" onclick="setLed(true)">on</span>
+        </p>
+        <br>
+        <p>
+            <label class="field">
+                Message
+                <input maxlength="16" class="field__input" type="text" id="morse_msg">
+            </label>
+            <span class="button" onclick="sendMorse()">Send Morse</span>
+        </p>
     </div>
     <h2>Sensors</h2>
     <div id="sensors"></div>
     <script>
         async function setLed(on) {
-            await fetch(`/actor/led?on=${on ? "on" : "off"}`, {
+            const res = await fetch(`/actor/led?on=${on ? "on" : "off"}`, {
                 method: "POST",
                 cache: "no-cache",
-                headers: {
-                    "Content-Type": "application/json",
-                },
             });
+            if (!res.ok) {
+                const err = await res.text();
+                alert(err);
+            }
+        }
+        async function sendMorse() {
+            const morseMsgEl = document.getElementById("morse_msg");
+            if (!morseMsgEl) {
+                console.error("no element with id morse_msg");
+                return;
+            }
+            const msg = morseMsgEl.value;
+            if (!msg) {
+                console.debug("morse_msg.value is empty");
+                return;
+            }
+            const url = new URL("/actor/led", location.origin);
+            url.searchParams.set("morse", msg);
+            const res = await fetch(url, {
+                method: "POST",
+                cache: "no-cache",
+            });
+            if (res.ok) {
+                morseMsgEl.value = "";
+            } else {
+                const err = await res.text();
+                alert(err);
+            }
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
