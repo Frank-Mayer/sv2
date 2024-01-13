@@ -12,10 +12,9 @@ type SensorData struct {
 }
 
 type Sensor struct {
-	gorm.Model
 	Name string        `json:"name"`
 	Unit string        `json:"unit"`
-	Data *[]SensorData `json:"data" gorm:"-"`
+	Data *[]SensorData `json:"data"`
 }
 
 const (
@@ -26,15 +25,20 @@ var (
 	store = make([]Sensor, 0)
 )
 
-func utcNow() int64 {
-	return time.Now().Unix()
-}
-
 func Add(key string, value float32, unit string) {
+	var utcNow = time.Now().Unix()
+
 	for _, sensor := range store {
 		if sensor.Name == key {
-			*sensor.Data = append(*sensor.Data, SensorData{value, utcNow()})
+			*sensor.Data = append(*sensor.Data, SensorData{value, utcNow})
 			sensor.Unit = unit
+			DaBa.Create(&SensorDB{
+				Model: gorm.Model{},
+				Name:  key,
+				Unit:  unit,
+				Value: value,
+				Time:  utcNow,
+			})
 			if len(*sensor.Data) > maxDataPoints {
 				*sensor.Data = (*sensor.Data)[1:]
 			}
@@ -47,11 +51,30 @@ func Add(key string, value float32, unit string) {
 		Name: key,
 		Unit: unit,
 		Data: &[]SensorData{
-			{value, utcNow()},
+			{value, utcNow},
 		},
 	})
+}
 
-	db.Create(&Sensor{Name: key, Unit: unit})
+func AddFromDB(key string, value float32, unit string, utcNow int64) {
+	utcNow = time.Now().Unix()
+
+	for _, sensor := range store {
+		if sensor.Name == key {
+			*sensor.Data = append(*sensor.Data, SensorData{value, utcNow})
+			sensor.Unit = unit
+			return
+		}
+	}
+	// If we get here, we didn't find the sensor in the store.
+	// Create a new one.
+	store = append(store, Sensor{
+		Name: key,
+		Unit: unit,
+		Data: &[]SensorData{
+			{value, utcNow},
+		},
+	})
 }
 
 func Get() []Sensor {
