@@ -3,7 +3,6 @@ package save
 import (
 	"errors"
 
-	"github.com/charmbracelet/log"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
