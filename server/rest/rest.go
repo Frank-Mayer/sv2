@@ -6,7 +6,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/Frank-Mayer/sv2/morse"
+	"github.com/Frank-Mayer/sv2/mqtt"
 	"github.com/Frank-Mayer/sv2/save"
 	"github.com/Frank-Mayer/sv2/webui"
 	"github.com/charmbracelet/log"
@@ -60,7 +63,8 @@ func Rest() {
 				return
 			}
 		case 2:
-			if segments[0] == "sensor" {
+			switch segments[0] {
+			case "sensor":
 				key := segments[1]
 				data, err := save.GetNamed(key)
 				if err != nil {
@@ -76,6 +80,36 @@ func Rest() {
 				}
 				writeJson(res, data)
 				return
+			case "actor":
+				if segments[1] == "led" {
+					switch req.Method {
+					case http.MethodGet:
+						res.WriteHeader(http.StatusMethodNotAllowed)
+						return
+					case http.MethodPost:
+						on := req.URL.Query().Get("on")
+						if on == "on" || on == "off" {
+							log.Debug("sending led command", "command", on)
+							mqtt.Pub("led", []byte("{\"command\":\""+on+"\"}"))
+							return
+						}
+						msg := req.URL.Query().Get("morse")
+						if len(msg) > 16 {
+							res.WriteHeader(http.StatusBadRequest)
+							_, _ = res.Write([]byte("400 message too long (max 64 chars)"))
+							return
+						}
+						if msg != "" {
+							go func() {
+								if err := Morse(msg); err != nil {
+									log.Error("error sending morse", "error", err)
+								}
+							}()
+							return
+						}
+						res.WriteHeader(http.StatusBadRequest)
+					}
+				}
 			}
 		}
 
@@ -90,4 +124,43 @@ func Rest() {
 	if err := http.ListenAndServe(addr(), nil); err != nil {
 		log.Fatal(err)
 	}
+}
+
+const (
+	signPause     = 200 * time.Millisecond
+	longSignPause = 400 * time.Millisecond
+	shortPause    = 400 * time.Millisecond
+	longPause     = 600 * time.Millisecond
+)
+
+func Morse(msg string) error {
+	morseMsg := morse.Marshal(msg)
+	log.Debug("sending led command", "command", morseMsg)
+	for _, char := range morseMsg {
+		switch char {
+		case morse.Short:
+			if err := mqtt.Pub("led", []byte("{\"command\":\"on\"}")); err != nil {
+				return err
+			}
+			time.Sleep(signPause)
+			if err := mqtt.Pub("led", []byte("{\"command\":\"off\"}")); err != nil {
+				return err
+			}
+			time.Sleep(signPause)
+		case morse.Long:
+			if err := mqtt.Pub("led", []byte("{\"command\":\"on\"}")); err != nil {
+				return err
+			}
+			time.Sleep(longSignPause)
+			if err := mqtt.Pub("led", []byte("{\"command\":\"off\"}")); err != nil {
+				return err
+			}
+			time.Sleep(signPause)
+		case morse.ShortPause:
+			time.Sleep(shortPause)
+		case morse.LongPause:
+			time.Sleep(longPause)
+		}
+	}
+	return nil
 }

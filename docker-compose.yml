@@ -9,6 +9,10 @@ services:
         published: 8883
         protocol: tcp
         mode: host
+      - target: 1883
+        published: 1883
+        protocol: tcp
+        mode: host
     volumes:
       - type: bind
         source: ./binds/mosquitto/config
@@ -43,12 +47,12 @@ services:
         source: ./binds/server
         target: /binds
         read_only: false
-  pub:
-    build: publisher/.
-    networks:
-      - test-net
-    depends_on:
-      - mosquitto
+ # pub:
+ #   build: publisher/.
+ #   networks:
+ #     - test-net
+ #   depends_on:
+ #     - mosquitto
 networks:
   test-net:
     external: false
