@@ -1,6 +1,8 @@
 package save
 
 import (
+	"errors"
+
 	"github.com/charmbracelet/log"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -8,32 +10,43 @@ import (
 
 var db *gorm.DB
 
-// const DBPATH = "/binds/test.db"
+const dbpath = "/binds/sensors.db"
 
-func Init() {
+func Init() error {
 	var err error
 
-	db, err = gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
-	if err != nil {
-		log.Fatal("failed to connect database", "error", err)
+	if db, err = gorm.Open(sqlite.Open(dbpath), &gorm.Config{}); err != nil {
+		return errors.Join(
+			errors.New("failed to connect database"),
+			err,
+		)
 	}
 
-	err = db.AutoMigrate(&Sensor{}, &SensorData{})
-	if err != nil {
-		log.Fatal("failed to auto migrate tables", "error", err)
+	if err := db.AutoMigrate(&Sensor{}, &SensorData{}); err != nil {
+		return errors.Join(
+			errors.New("failed to migrate database"),
+			err,
+		)
 	}
 
-	err = db.Create(&Sensor{Name: "Peter", Unit: "Peta"}).Error
-	if err != nil {
-		log.Fatal("failed to create initial record", "error", err)
+	if tx := db.Create(&Sensor{Name: "Peter", Unit: "Peta"}); tx.Error != nil {
+		return errors.Join(
+			errors.New("failed to create initial record"),
+			tx.Error,
+		)
 	}
 
-	log.Info("Database initialization successful")
+	return nil
 }
 
-func Close() {
+func Close() error {
 	dbInstance, _ := db.DB()
 	if err := dbInstance.Close(); err != nil {
-		log.Fatal("Failed to close the Database", "error", err)
+		return errors.Join(
+			errors.New("failed to close database"),
+			err,
+		)
 	}
+
+	return nil
 }

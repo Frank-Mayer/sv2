@@ -14,8 +14,14 @@ import (
 func main() {
 	log.SetLevel(log.DebugLevel)
 
-	save.Init()
-	defer save.Close()
+	if err := save.Init(); err != nil {
+		log.Fatal("failed to initialize database", "error", err)
+	}
+	defer func() {
+		if err := save.Close(); err != nil {
+			log.Error("failed to close database", "error", err)
+		}
+	}()
 
 	var wg sync.WaitGroup
 
