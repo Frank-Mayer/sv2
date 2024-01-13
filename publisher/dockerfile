@@ -1,13 +1,13 @@
 # Compile stage
-FROM golang:alpine AS build-env
-ENV CGO_ENABLED 0
+FROM golang:bullseye AS build-env
+ENV CGO_ENABLED 1
 
 ADD . /pub_src
 WORKDIR /pub_src
 RUN go build -gcflags "all=-N -l" -o /pub
 
 # Final stage
-FROM alpine:latest
+FROM debian:bullseye-slim
 
 COPY --from=build-env /pub /
 

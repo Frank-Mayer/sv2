@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var DaBa *gorm.DB
+var db *gorm.DB
 
 const dbpath = "/binds/sensors.db"
 
@@ -22,7 +22,7 @@ type SensorDB struct {
 func Init() error {
 	var err error
 
-	if DaBa, err = gorm.Open(sqlite.Open(dbpath), &gorm.Config{
+	if db, err = gorm.Open(sqlite.Open(dbpath), &gorm.Config{
 		SkipDefaultTransaction: true,
 	}); err != nil {
 		return errors.Join(
@@ -31,7 +31,7 @@ func Init() error {
 		)
 	}
 
-	if err := DaBa.AutoMigrate(&SensorDB{}); err != nil {
+	if err := db.AutoMigrate(&SensorDB{}); err != nil {
 		return errors.Join(
 			errors.New("failed to migrate database"),
 			err,
@@ -50,7 +50,7 @@ func ReadLatestFromDB() error {
 	var sensorsDB []SensorDB
 
 	// Fetch the latest 50 entries from the database ordered by time descending
-	if err := DaBa.Order("time desc").Limit(50).Find(&sensorsDB).Error; err != nil {
+	if err := db.Order("time desc").Limit(50).Find(&sensorsDB).Error; err != nil {
 		return errors.Join(
 			errors.New("failed to read latest entries from database"),
 			err,
@@ -72,7 +72,7 @@ func ReadLatestFromDB() error {
 }
 
 func Close() error {
-	dbInstance, _ := DaBa.DB()
+	dbInstance, _ := db.DB()
 	if err := dbInstance.Close(); err != nil {
 		return errors.Join(
 			errors.New("failed to close database"),

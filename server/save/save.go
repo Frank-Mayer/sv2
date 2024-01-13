@@ -32,7 +32,7 @@ func Add(key string, value float32, unit string) {
 		if sensor.Name == key {
 			*sensor.Data = append(*sensor.Data, SensorData{value, utcNow})
 			sensor.Unit = unit
-			DaBa.Create(&SensorDB{
+			db.Create(&SensorDB{
 				Model: gorm.Model{},
 				Name:  key,
 				Unit:  unit,
