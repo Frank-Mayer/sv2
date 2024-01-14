@@ -127,10 +127,10 @@ func Rest() {
 }
 
 const (
-	signPause     = 200 * time.Millisecond
-	longSignPause = 400 * time.Millisecond
-	shortPause    = 400 * time.Millisecond
-	longPause     = 600 * time.Millisecond
+	signPause     = 2 * 200 * time.Millisecond
+	longSignPause = 2 * 400 * time.Millisecond
+	shortPause    = 2 * 400 * time.Millisecond
+	longPause     = 2 * 600 * time.Millisecond
 )
 
 func Morse(msg string) error {
