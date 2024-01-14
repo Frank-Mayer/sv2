@@ -57,7 +57,6 @@ func Add(key string, value float32, unit string) {
 }
 
 func AddFromDB(key string, value float32, unit string, utcNow int64) {
-	utcNow = time.Now().Unix()
 
 	for _, sensor := range store {
 		if sensor.Name == key {
